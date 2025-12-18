@@ -1,5 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
+from bson import ObjectId
+from bson.errors import InvalidId
 
 import database
 
@@ -30,3 +32,20 @@ def list_files():
             }
         )
     return {'count': len(files), 'files': files}
+
+@app.delete('/delete/{file_id}')
+def delete_file(file_id: str):
+    try:
+        oid = ObjectId(file_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail='Invalid file ID format')
+    
+    if not database.fs.exists(oid):
+        raise HTTPException(status_code=404, detail='File not found')
+    
+    database.fs.delete(oid)
+
+    return {
+        'message': 'file delete successfully',
+        'file_id': file_id
+    }
